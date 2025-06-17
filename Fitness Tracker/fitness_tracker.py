@@ -26,7 +26,13 @@ the number corresponding to your desired option to proceed
 
 Please enter your desired option here : ''')
 
-    if menu.strip() == '1':
+    menu = menu.strip()
+    if menu == '1':
 
         exercise_category = input('''
+Please enter your desired exercise category: ''')
+        
+    elif menu == '2':
+
+        view_exercise_category = input('''
 Please enter your desired exercise category: ''')
