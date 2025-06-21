@@ -13,12 +13,21 @@ cursor = db.cursor()
 # Create tables
 cursor.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER
                PRIMARY KEY, Category_Name Text)''')
+
 cursor.execute('''CREATE TABLE IF NOT EXISTS exercises (exercise_id INTEGER
                PRIMARY KEY,exercise_name TEXT, muscle_group TEXT, reps INTEGER,
                 sets INTEGER, category_id INTEGER, FOREIGN KEY(category_id)
                REFERENCES categories(category_id) )''')
+
 cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routines
                (workout_routine_id INTEGER PRIMARY KEY, routine_name TEXT)''')
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routine_exercises
+               (workout_routines_exercises_id INTEGER PRIMARY KEY, routine_id
+               INTEGER, exercise_id INTEGER, FOREIGN KEY (routine_id)
+               REFERENCES workout_routines(workout_routine_id), FOREIGN KEY
+               (exercise_id) REFERENCES exercises(exercise_id))''')
+
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
     KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
 db.commit()
@@ -42,6 +51,7 @@ the number corresponding to your desired option to proceed
 Please enter your desired option here : ''')
 
     menu = menu.strip()
+
     if menu == '1':  # Add exercise category
 
         exercise_category = input('''
