@@ -21,6 +21,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routines
                (workout_routine_id INTEGER PRIMARY KEY, routine_name TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
     KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
+db.commit()
 # *****************************************************************************
 
 while True:
@@ -45,10 +46,16 @@ Please enter your desired option here : ''')
 
         exercise_category = input('''
 Please enter your desired exercise category: ''')
-        
-        cursor.execute('''INSERT''')
-        
+
+        cursor.execute('''INSERT INTO categories(category_name)
+                        VALUES(?)''', (exercise_category, ))
+        db.commit()
+        print("Exercise category added successfully!")
+
     elif menu == '2':  # View exercise by category
 
         view_exercise_category = input('''
 Please enter your desired exercise category: ''')
+
+    elif menu == '9':
+        exit()
