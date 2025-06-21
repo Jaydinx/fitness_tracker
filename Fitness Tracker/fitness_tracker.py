@@ -45,12 +45,24 @@ Please enter your desired option here : ''')
     if menu == '1':  # Add exercise category
 
         exercise_category = input('''
-Please enter your desired exercise category: ''')
+Please enter your desired exercise category (0 to cancel): ''')
 
-        cursor.execute('''INSERT INTO categories(category_name)
-                        VALUES(?)''', (exercise_category, ))
-        db.commit()
-        print("Exercise category added successfully!")
+        while exercise_category != '0':
+
+            cursor.execute('''SELECT category_name FROM categories WHERE
+                           category_name = (?)''', (exercise_category,))
+
+            if cursor.fetchone() is None:
+                cursor.execute('''INSERT INTO categories(category_name)
+                                VALUES(?)''', (exercise_category, ))
+                print("Exercise category added successfully!")
+
+            else:
+                print('CATEGORY ALREADY EXISTS!')
+
+            db.commit()
+            exercise_category = input('''
+Please enter your desired exercise category (0 to cancel): ''')
 
     elif menu == '2':  # View exercise by category
 
