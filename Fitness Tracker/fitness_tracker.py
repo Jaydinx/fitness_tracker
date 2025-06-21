@@ -12,12 +12,22 @@ cursor = db.cursor()
 
 def display_exercises_by_category(exercises):
 
+    print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
+          ("ID", "Exercise Name", "Muscle Group", "Reps", "Sets"))
+    print("-" * 65)
+
     for row in exercises:
-        exercise_id, exercise_name, muscle_group, reps, sets = row
+        exercise_id = row[0]
+        exercise_name = row[1]
+        muscle_group = row[2]
+        reps = row[3]
+        sets = row[4]
         print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
               (exercise_id, exercise_name, muscle_group, reps, sets))
 
 # *****************************************************************************
+
+
 # Create tables
 cursor.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER
                PRIMARY KEY, Category_Name Text)''')
@@ -98,20 +108,17 @@ Please enter your exercise category to view exercises from (0 to cancel): ''')
 
             if category_id is None:
                 print('CATEGORY NOT FOUND!, PLEASE TRY AGAIN')
-                
+
             else:
                 cursor.execute('''SELECT * from exercises WHERE
                             category_id = (?)''', (category_id[0], ))
                 exercises = cursor.fetchall()
                 db.commit()
-                #print(exercises)
                 display_exercises_by_category(exercises)
                 break
 
             cursor.execute('''SELECT category_id from categories where
                         category_name = (?) ''', (view_exercise_category, ))
-        
-        
 
     elif menu == '9':
         exit()
