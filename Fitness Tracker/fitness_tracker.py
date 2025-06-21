@@ -9,6 +9,14 @@ cursor = db.cursor()
    category as well as calculating the user's fitness goal progress based on
    the information they have provided'''
 
+
+def display_exercises_by_category(exercises):
+
+    for row in exercises:
+        exercise_id, exercise_name, muscle_group, reps, sets = row
+        print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
+              (exercise_id, exercise_name, muscle_group, reps, sets))
+
 # *****************************************************************************
 # Create tables
 cursor.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER
@@ -30,6 +38,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routine_exercises
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
     KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
+
 db.commit()
 # *****************************************************************************
 
@@ -51,14 +60,14 @@ the number corresponding to your desired option to proceed
 Please enter your desired option here : ''')
 
     menu = menu.strip()
-
+# -----------------------------------------------------------------------------
     if menu == '1':  # Add exercise category
 
         exercise_category = input('''
-Please enter your desired exercise category (0 to cancel): ''')
+Please enter your exercise category to add (0 to cancel): ''')
 
         while exercise_category != '0':
-
+            # Check if category exists
             cursor.execute('''SELECT category_name FROM categories WHERE
                            category_name = (?)''', (exercise_category,))
 
@@ -73,11 +82,36 @@ Please enter your desired exercise category (0 to cancel): ''')
             db.commit()
             exercise_category = input('''
 Please enter your desired exercise category (0 to cancel): ''')
+# -----------------------------------------------------------------------------
 
     elif menu == '2':  # View exercise by category
 
         view_exercise_category = input('''
-Please enter your desired exercise category: ''')
+Please enter your exercise category to view exercises from (0 to cancel): ''')
+
+        while view_exercise_category != '0':
+
+            cursor.execute('''SELECT category_id from categories where
+                        category_name = (?) ''', (view_exercise_category, ))
+
+            category_id = cursor.fetchone()
+
+            if category_id is None:
+                print('CATEGORY NOT FOUND!, PLEASE TRY AGAIN')
+                
+            else:
+                cursor.execute('''SELECT * from exercises WHERE
+                            category_id = (?)''', (category_id[0], ))
+                exercises = cursor.fetchall()
+                db.commit()
+                #print(exercises)
+                display_exercises_by_category(exercises)
+                break
+
+            cursor.execute('''SELECT category_id from categories where
+                        category_name = (?) ''', (view_exercise_category, ))
+        
+        
 
     elif menu == '9':
         exit()
