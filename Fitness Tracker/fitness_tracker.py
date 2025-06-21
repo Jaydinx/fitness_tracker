@@ -9,6 +9,19 @@ cursor = db.cursor()
    category as well as calculating the user's fitness goal progress based on
    the information they have provided'''
 
+# *****************************************************************************
+# Create tables
+cursor.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER
+               PRIMARY KEY, Category_Name Text)''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS exercises (exercise_id INTEGER
+               PRIMARY KEY,exercise_name TEXT, muscle_group TEXT, reps INTEGER,
+                sets INTEGER, category_id FOREIGN KEY )''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routines 
+               (workout_routine_id INTEGER PRIMARY KEY, routine_name TEXT)''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
+    KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
+# *****************************************************************************
+
 while True:
 
     menu = input('''Please select an option from the menu below by inputting
@@ -27,12 +40,14 @@ the number corresponding to your desired option to proceed
 Please enter your desired option here : ''')
 
     menu = menu.strip()
-    if menu == '1':
+    if menu == '1':  # Add exercise category
 
         exercise_category = input('''
 Please enter your desired exercise category: ''')
         
-    elif menu == '2':
+        cursor.execute('''INSERT''')
+        
+    elif menu == '2':  # View exercise by category
 
         view_exercise_category = input('''
 Please enter your desired exercise category: ''')
