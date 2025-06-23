@@ -10,20 +10,52 @@ cursor = db.cursor()
    the information they have provided'''
 
 
-def display_exercises_by_category(exercises):
+'''The function display_exercises_by_category ensures that the selected data is
+    displayed in a neat and legible format'''
 
-    print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
-          ("ID", "Exercise Name", "Muscle Group", "Reps", "Sets"))
-    print("-" * 65)
 
-    for row in exercises:
-        exercise_id = row[0]
-        exercise_name = row[1]
-        muscle_group = row[2]
-        reps = row[3]
-        sets = row[4]
+def display_categories():
+
+    cursor.execute('''SELECT * from categories''')
+    categories = cursor.fetchall()
+    db.commit()
+
+    print('{:<25}'.format('CATEGORY LIST'))
+    print('-'*65)
+
+    for row in categories:
+        category_name = row[1]
+        print('{:<25}'.format(category_name))
+
+
+def display_exercises_by_category(entry):
+
+    cursor.execute('''SELECT category_id from categories where
+                category_name = (?) ''', (entry, ))
+
+    category_id = cursor.fetchone()
+
+    if category_id is None:
+        print('CATEGORY NOT FOUND!, PLEASE TRY AGAIN')
+
+    else:
+        cursor.execute('''SELECT * from exercises WHERE
+                    category_id = (?)''', (category_id[0], ))
+        exercises = cursor.fetchall()
+        db.commit()
+
         print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
-              (exercise_id, exercise_name, muscle_group, reps, sets))
+              ("ID", "Exercise Name", "Muscle Group", "Reps", "Sets"))
+        print("-" * 65)
+
+        for row in exercises:
+            exercise_id = row[0]
+            exercise_name = row[1]
+            muscle_group = row[2]
+            reps = row[3]
+            sets = row[4]
+            print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
+                (exercise_id, exercise_name, muscle_group, reps, sets))
 
 # *****************************************************************************
 
@@ -70,7 +102,8 @@ the number corresponding to your desired option to proceed
 Please enter your desired option here : ''')
 
     menu = menu.strip()
-# -----------------------------------------------------------------------------
+# -----------------------MENU OPTION 1-----------------------------------------
+
     if menu == '1':  # Add exercise category
 
         exercise_category = input('''
@@ -92,7 +125,8 @@ Please enter your exercise category to add (0 to cancel): ''')
             db.commit()
             exercise_category = input('''
 Please enter your desired exercise category (0 to cancel): ''')
-# -----------------------------------------------------------------------------
+
+# ------------------------MENU OPTION 2----------------------------------------
 
     elif menu == '2':  # View exercise by category
 
@@ -101,24 +135,46 @@ Please enter your exercise category to view exercises from (0 to cancel): ''')
 
         while view_exercise_category != '0':
 
-            cursor.execute('''SELECT category_id from categories where
-                        category_name = (?) ''', (view_exercise_category, ))
+            display_exercises_by_category(view_exercise_category)
+            break
 
-            category_id = cursor.fetchone()
+# -------------------------MENU OPTION 3---------------------------------------
 
-            if category_id is None:
-                print('CATEGORY NOT FOUND!, PLEASE TRY AGAIN')
+    elif menu == '3':
+
+        display_categories()
+        delete_exercise_category = input('\nPlease enter the category of which'
+                                         ' the exercise you would like to '
+                                         'remove(0 to cancel): ')
+        while delete_exercise_category != 0:
+
+            display_exercises_by_category(delete_exercise_category)
+            delete_exercise = input('Please enter the exercise name from above'
+                                    ' that you would like to delete: ')
+
+            cursor.execute('''SELECT exercise_name from exercises WHERE
+                UPPER(exercise_name) = (?)''', (delete_exercise.upper(), ))
+            found_exercise = cursor.fetchone()
+            found_exercise = found_exercise[0]
+
+            if found_exercise is None:
+                print('Exercise does not exist, pick from the list above!')
 
             else:
-                cursor.execute('''SELECT * from exercises WHERE
-                            category_id = (?)''', (category_id[0], ))
-                exercises = cursor.fetchall()
-                db.commit()
-                display_exercises_by_category(exercises)
-                break
-
-            cursor.execute('''SELECT category_id from categories where
-                        category_name = (?) ''', (view_exercise_category, ))
-
+                confirmation = input(f'''
+Are you sure you want to delete{found_exercise} (Y/N)? ''')
+                if confirmation.upper() == 'Y':
+                    cursor.execute('''DELETE FROM exercises WHERE
+                    UPPER(exercise_name) = (?)''', (delete_exercise.upper(), ))
+                    print(f'{found_exercise} DELETED SUCCESSFULLY!!!')
+                else:
+                    print('CANCELED!')
+                    break
+#------------------------MENU OPTION 4-----------------------------------------
+    
     elif menu == '9':
         exit()
+
+    else:
+        print('\nOOPS!, INVALID ENTRY *_*\n'
+              'PLEASE SELECT FROM THE OPTIONS PROVIDED\n')
