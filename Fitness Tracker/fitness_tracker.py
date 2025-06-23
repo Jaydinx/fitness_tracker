@@ -55,7 +55,7 @@ def display_exercises_by_category(entry):
             reps = row[3]
             sets = row[4]
             print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
-                (exercise_id, exercise_name, muscle_group, reps, sets))
+                  (exercise_id, exercise_name, muscle_group, reps, sets))
 
 # *****************************************************************************
 
@@ -170,8 +170,8 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                 else:
                     print('CANCELED!')
                     break
-#------------------------MENU OPTION 4-----------------------------------------
-    
+# ------------------------MENU OPTION 4----------------------------------------
+
     elif menu == '9':
         exit()
 
