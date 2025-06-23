@@ -14,6 +14,46 @@ cursor = db.cursor()
     displayed in a neat and legible format'''
 
 
+def check_if_exercise_exists(select_exercise, selected_exercises):
+
+    cursor.execute('SELECT exercise_name FROM exercises WHERE exercise_id'
+                   '= (?)', (select_exercise, ))
+    exercise_name = cursor.fetchone()
+    if exercise_name is None:
+        print('EXERCISE ID IS OUT OF RANGE, PLEASE SELECT FROM OPTIONS ABOVE')
+        return (False)
+    else:
+
+        if select_exercise in selected_exercises:
+
+            print('You have already included this exercise in your'
+                  ' routine! Please try a different exercise or '
+                  'enter 0 to exit')
+            return (False)
+        else:
+            return (True)
+
+
+def display_all_exercises():
+
+    cursor.execute('SELECT * FROM exercises')
+    exercises = cursor.fetchall()
+    db.commit()
+
+    print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
+          ("ID", "Exercise Name", "Muscle Group", "Reps", "Sets"))
+    print("-" * 65)
+
+    for row in exercises:
+        exercise_id = row[0]
+        exercise_name = row[1]
+        muscle_group = row[2]
+        reps = row[3]
+        sets = row[4]
+        print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
+              (exercise_id, exercise_name, muscle_group, reps, sets))
+
+
 def display_categories():
 
     cursor.execute('''SELECT * from categories''')
@@ -171,6 +211,23 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                     print('CANCELED!')
                     break
 # ------------------------MENU OPTION 4----------------------------------------
+    elif menu == '4':
+        routine_name = input('Please enter the name of your new workout'
+                             'routine: ')
+        display_all_exercises()
+        selected_exercises = []
+        select_exercise = input('Please select and exercise by typing in '
+                                'the id of the corresponding exercise: ')
+
+        while select_exercise != '0':
+            if check_if_exercise_exists(select_exercise, selected_exercises)\
+                  is True:
+                selected_exercises.append(select_exercise)
+
+            select_exercise = input('Please select and exercise by typing in '
+                                    'the id of the corresponding exercise: ')
+
+        print(selected_exercises)
 
     elif menu == '9':
         exit()
