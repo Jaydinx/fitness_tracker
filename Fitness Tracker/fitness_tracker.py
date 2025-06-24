@@ -219,14 +219,31 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
         select_exercise = input('Please select and exercise by typing in '
                                 'the id of the corresponding exercise: ')
 
-        while select_exercise != '0':
+        while select_exercise != '0' and select_exercise.upper() != 'A':
             if check_if_exercise_exists(select_exercise, selected_exercises)\
                   is True:
                 selected_exercises.append(select_exercise)
 
             select_exercise = input('Please select and exercise by typing in '
-                                    'the id of the corresponding exercise: ')
-
+                                    'the id of the corresponding exercise'
+                                    '(A to confirm and submit all selected'
+                                    ' exercises): ')
+            
+        if select_exercise.upper() == 'A':
+            if selected_exercises == []:
+                print('ZERO EXERCISES SELECTED'
+                        ', NONE ADDED, ROUTINE CREATION CANCELED')
+                
+            else:
+                cursor.execute('''INSERT INTO workout_routines
+                            (routine_name) VALUES (?)''', (routine_name, ))
+                cursor.execute('''SELECT workout_routine_id FROM workout_routines WHERE routine_name = (?)''', (routine_name, ))
+                
+                routine_id = cursor.fetchone()
+                for exercise_id in selected_exercises:
+                    cursor.execute('''INSERT INTO workout_routine_exercises (routine_id, exercise_id) VALUES (?, ?)''', (routine_id[0],exercise_id )) 
+                db.commit()
+            
         print(selected_exercises)
 
     elif menu == '9':
