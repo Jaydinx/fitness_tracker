@@ -212,39 +212,64 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                     break
 # ------------------------MENU OPTION 4----------------------------------------
     elif menu == '4':
+        
         routine_name = input('Please enter the name of your new workout'
                              'routine: ')
         display_all_exercises()
         selected_exercises = []
-        select_exercise = input('Please select and exercise by typing in '
+        select_exercise = input('Please select an exercise by typing in '
                                 'the id of the corresponding exercise: ')
 
         while select_exercise != '0' and select_exercise.upper() != 'A':
+
             if check_if_exercise_exists(select_exercise, selected_exercises)\
                   is True:
                 selected_exercises.append(select_exercise)
 
-            select_exercise = input('Please select and exercise by typing in '
+            select_exercise = input('Please select an exercise by typing in '
                                     'the id of the corresponding exercise'
                                     '(A to confirm and submit all selected'
                                     ' exercises): ')
-            
+
         if select_exercise.upper() == 'A':
             if selected_exercises == []:
                 print('ZERO EXERCISES SELECTED'
-                        ', NONE ADDED, ROUTINE CREATION CANCELED')
-                
+                      ', NONE ADDED, ROUTINE CREATION CANCELED')
+
             else:
                 cursor.execute('''INSERT INTO workout_routines
                             (routine_name) VALUES (?)''', (routine_name, ))
-                cursor.execute('''SELECT workout_routine_id FROM workout_routines WHERE routine_name = (?)''', (routine_name, ))
-                
+                cursor.execute('''SELECT workout_routine_id FROM 
+                               workout_routines WHERE routine_name = (?)''',
+                               (routine_name, ))
+
                 routine_id = cursor.fetchone()
                 for exercise_id in selected_exercises:
-                    cursor.execute('''INSERT INTO workout_routine_exercises (routine_id, exercise_id) VALUES (?, ?)''', (routine_id[0],exercise_id )) 
+                    cursor.execute('''INSERT INTO workout_routine_exercises 
+                                   (routine_id, exercise_id) VALUES (?, ?)''',
+                                   (routine_id[0], exercise_id))
                 db.commit()
-            
-        print(selected_exercises)
+                print(f"Exercise routine '{routine_name}'"
+                      " created successfully")
+
+
+    elif menu == '5':
+        routine_name_search = input('Please input the name of the routine you'
+                                    'would like to view: ')
+        if routine_name_search != '':
+            cursor.execute('''SELECT routine_name, workout_routine_id from workout_routines WHERE UPPER(routine_name) = (?)''', (routine_name_search.upper(), ))
+            routine_found = cursor.fetchone()
+            workout_routine_id = routine_found[1]
+            print(workout_routine_id)
+
+            if routine_found is not None:
+
+                cursor.execute('''SELECT exercise_id FROM workout_routine_exercises WHERE routine_id = (?)''', (workout_routine_id, ))
+                found_exercise_id = cursor.fetchall()
+                print(found_exercise_id)
+        else:
+            print('You have not entered a routine name, please try again')
+        
 
     elif menu == '9':
         exit()
