@@ -10,10 +10,6 @@ cursor = db.cursor()
    the information they have provided'''
 
 
-'''The function display_exercises_by_category ensures that the selected data is
-    displayed in a neat and legible format'''
-
-
 def check_if_exercise_exists(select_exercise, selected_exercises):
 
     cursor.execute('SELECT exercise_name FROM exercises WHERE exercise_id'
@@ -66,6 +62,10 @@ def display_categories():
     for row in categories:
         category_name = row[1]
         print('{:<25}'.format(category_name))
+
+
+'''The function "display_exercises_by_category" ensures that the selected data
+    is displayed in a neat and legible format'''
 
 
 def display_exercises_by_category(entry):
@@ -180,7 +180,7 @@ Please enter your exercise category to view exercises from (0 to cancel): ''')
 
 # -------------------------MENU OPTION 3---------------------------------------
 
-    elif menu == '3':
+    elif menu == '3':  # Delete exercise by category
 
         display_categories()
         delete_exercise_category = input('\nPlease enter the category of which'
@@ -211,8 +211,8 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                     print('CANCELED!')
                     break
 # ------------------------MENU OPTION 4----------------------------------------
-    elif menu == '4':
-        
+    elif menu == '4':  # Create workout routine
+
         routine_name = input('Please enter the name of your new workout'
                              'routine: ')
         display_all_exercises()
@@ -239,37 +239,63 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
             else:
                 cursor.execute('''INSERT INTO workout_routines
                             (routine_name) VALUES (?)''', (routine_name, ))
-                cursor.execute('''SELECT workout_routine_id FROM 
+                cursor.execute('''SELECT workout_routine_id FROM
                                workout_routines WHERE routine_name = (?)''',
                                (routine_name, ))
 
                 routine_id = cursor.fetchone()
                 for exercise_id in selected_exercises:
-                    cursor.execute('''INSERT INTO workout_routine_exercises 
+                    cursor.execute('''INSERT INTO workout_routine_exercises
                                    (routine_id, exercise_id) VALUES (?, ?)''',
                                    (routine_id[0], exercise_id))
                 db.commit()
                 print(f"Exercise routine '{routine_name}'"
                       " created successfully")
 
+# -----------------------------MENU OPTION 5 ----------------------------------
 
-    elif menu == '5':
+    elif menu == '5':  # View workout routine
+
         routine_name_search = input('Please input the name of the routine you'
-                                    'would like to view: ')
+                                    ' would like to view: ')
         if routine_name_search != '':
-            cursor.execute('''SELECT routine_name, workout_routine_id from workout_routines WHERE UPPER(routine_name) = (?)''', (routine_name_search.upper(), ))
+
+            cursor.execute('''SELECT routine_name, workout_routine_id from
+                           workout_routines WHERE UPPER(routine_name) = (?)
+                           ''', (routine_name_search.upper(), ))
             routine_found = cursor.fetchone()
-            workout_routine_id = routine_found[1]
-            print(workout_routine_id)
 
             if routine_found is not None:
 
-                cursor.execute('''SELECT exercise_id FROM workout_routine_exercises WHERE routine_id = (?)''', (workout_routine_id, ))
+                workout_routine_id = routine_found[1]
+                cursor.execute('''SELECT exercise_id FROM
+                               workout_routine_exercises WHERE routine_id = (?)
+                               ''', (workout_routine_id, ))
                 found_exercise_id = cursor.fetchall()
-                print(found_exercise_id)
+                print(f"\n{routine_name_search.upper()} ROUTINE\n")
+                print("{:<5} {:<25} {:<15} {:<5} {:<5}"
+                      .format("ID", "Exercise Name", "Muscle Group", "Reps",
+                              "Sets"))
+                print("-" * 65)
+
+                for row in found_exercise_id:
+
+                    exercise_id = row[0]
+                    cursor.execute('''SELECT exercise_id, exercise_name,
+                                   muscle_group, reps, sets FROM exercises
+                                   WHERE exercise_id = ?''', (exercise_id,))
+                    exercise = cursor.fetchone()
+
+                    if exercise:
+                        print("{:<5} {:<25} {:<15} {:<5} {:<5}"
+                              .format(*exercise))
+
+            else:
+                print("ROUTINE NOT FOUND, PLEASE ENSURE YOU ENTER AN EXISTING"
+                      " ROUTINE NAME")
+
         else:
             print('You have not entered a routine name, please try again')
-        
 
     elif menu == '9':
         exit()
