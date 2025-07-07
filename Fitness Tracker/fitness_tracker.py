@@ -9,6 +9,8 @@ cursor = db.cursor()
    category as well as calculating the user's fitness goal progress based on
    the information they have provided'''
 
+# -----------------------FUNCTIONS---------------------------------------------
+
 
 def check_if_exercise_exists(select_exercise, selected_exercises):
 
@@ -97,6 +99,27 @@ def display_exercises_by_category(entry):
             print("{:<5} {:<25} {:<15} {:<5} {:<5}".format
                   (exercise_id, exercise_name, muscle_group, reps, sets))
 
+
+def print_exercise_progress():
+
+    print("{:<10} {:<25} {:<20}".format("ID", "Exercise", "Weight"))
+    print("-"*45)
+    cursor.execute('''SELECT exercise_id from exercise_progress''')
+    exercise_id = cursor.fetchall()
+
+    for row in exercise_id:
+        exercise_id = row[0]
+        cursor.execute('''SELECT  exercise_id, exercise_name FROM exercises
+                        WHERE exercise_id = ?''', (exercise_id,))
+        exercise = cursor.fetchone()
+        cursor.execute('''SELECT Weight FROM exercise_progress where
+                       exercise_id = (?)''', (exercise_id,))
+        weight = cursor.fetchone()
+
+        if exercise and weight:
+
+            print("{:<10} {:<25} {:<20}".format(*exercise, *weight))
+
 # *****************************************************************************
 
 
@@ -121,6 +144,11 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routine_exercises
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
     KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
 
+cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_progress
+               (progress_id INTEGER PRIMARY KEY, exercise_id INTEGER,
+               weight INTEGER, FOREIGN KEY (exercise_id) REFERENCES
+               exercises(exercise_id))''')
+
 db.commit()
 # *****************************************************************************
 
@@ -134,7 +162,7 @@ the number corresponding to your desired option to proceed
 3. Delete exercise by category
 4. Create Workout Routine
 5. View Workout Routine
-6. View Exercise Progress
+6. View / Update Exercise Progress
 7. Set Fitness Goals
 8. View Progress towards Fitness Goals
 9. Quit
@@ -297,7 +325,49 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
         else:
             print('You have not entered a routine name, please try again')
 
-    elif menu == '9':
+    elif menu == '6':
+
+        print_exercise_progress()
+        update_progress_confirmation = input("Would you like to update an"
+                                             " exercise goal? (Y / N): ")
+        if update_progress_confirmation.upper() == 'Y':
+
+            progress_to_update = input("Please enter the exercise ID of which"
+                                       " exercise you wish to update: ")
+            cursor.execute('''SELECT exercise_id FROM exercise_progress WHERE
+                           exercise_id = (?)''', (progress_to_update,))
+            exercise_id = cursor.fetchone()
+            exercise_id = int(exercise_id[0])
+            if exercise_id is None:
+                print('''Exercise not found, please ensure you have entered
+                      the correct id''')
+
+            else:
+                cursor.execute('''SELECT exercise_name FROM exercises WHERE
+                               exercise_id = (?)''', (exercise_id,))
+                exercise_name = cursor.fetchone()
+                print("You are updating the weight progress for"
+                      f" {exercise_name[0]}")
+
+                weight_change = int(input("Please enter the new weight for"
+                                          f" {exercise_name[0]}: "))
+                cursor.execute('''UPDATE exercise_progress SET weight = ? WHERE
+                            exercise_id = ?''', (weight_change, exercise_id,))
+                db.commit()
+                print("PROGRESS UPDATED SUCCESSFULLY!")
+                print_exercise_progress()
+
+        elif update_progress_confirmation.upper() == 'N':
+            print("Returning to main menu *_*")
+
+        else:
+            print("You have entered an incorrect value, Please specify Y or N")
+
+    elif menu == '7':
+
+        print("YAH")
+
+    elif menu == '0':
         exit()
 
     else:
