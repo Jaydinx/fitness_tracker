@@ -31,31 +31,40 @@ def enter_goal():
 
     target_value = get_valid_input(
         "Enter the target value for your goal (just the number): ",
-        "target value"
-    )
+        "target value")
 
     unit = get_valid_input(
         "Enter the unit of measurement (e.g., kg, km, sec): ",
-        "unit"
-    )
+        "unit")
 
     current_value = get_valid_input(
         "Enter your current progress value (just the number): ",
-        "current value"
-    )
+        "current value")
+    
+    while True:
 
+        direction = input("Should your current value increase or decrease to "
+                          "reach your goal? (i = increase, d = decrease): "
+                          ).strip().lower()
+        
+        if direction in ['i', 'd']:
+            break
+        else:
+            print("Invalid input. Type 'i' for increase or 'd' for decrease.\n")
+
+    # ✅ Insert into the database
     try:
         cursor.execute('''
-            INSERT INTO goals (goal_type, target_value, unit, current_value)
-            VALUES (?, ?, ?, ?)
-        ''', (goal_type, float(target_value), unit, float(current_value)))
+            INSERT INTO goals (goal_type, target_value, unit, current_value, direction)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (goal_type, float(target_value), unit, float(current_value), direction))
         db.commit()
         print("\n✅ Goal saved successfully into the database!\n")
 
     except Exception as e:
-        print(f"Failed to save goal: {e}")
+        print(f"❌ Failed to save goal: {e}")
 
-    return goal_type, target_value, unit, current_value
+    return goal_type, target_value, unit, current_value, direction
 
 
 def check_for_null(entry, specification):
@@ -72,9 +81,10 @@ def print_fitness_goals():
     cursor.execute('''SELECT * FROM goals''')
     goals = cursor.fetchall()
     print("\n")
-    print("{:<10} {:<20} {:<20} {:<20} {:<10}".format(
-        "ID", "Goal Type", "Target Value", "Current Value", "Unit"))
-    print(80*"-")
+    print("{:<10} {:<30} {:<20} {:<20} {:<10} {:<10}".format(
+        "ID", "Goal Type", "Target Value", "Current Value", "Unit",
+        "Direction"))
+    print(100*"-")
 
     for row in goals:
 
@@ -83,8 +93,9 @@ def print_fitness_goals():
         target_value = row[2]
         current_value = row[3]
         unit = row[4]
-        print("{:<10} {:<20} {:<20} {:<20} {:<10}".format(
-         goal_id, goal_type, target_value, current_value, unit))
+        direction = row[5]
+        print("{:<10} {:<30} {:<20} {:<20} {:<10} {:<10}".format(
+         goal_id, goal_type, target_value, current_value, unit, direction))
 
 
 def check_if_exercise_exists(select_exercise, selected_exercises):
@@ -217,7 +228,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routine_exercises
                (exercise_id) REFERENCES exercises(exercise_id))''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
-    KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT)''')
+    KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT,
+                inc_dec TEXT)''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_progress
                (progress_id INTEGER PRIMARY KEY, exercise_id INTEGER,
@@ -469,13 +481,14 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                                     "2. Target Value\n"
                                     "3. Current Value\n"
                                     "4. Unit\n"
+                                    "5. Direction to reach goal\n"
                                     "0. Exit\n"
                                     "\nEnter your desired option here: "
                                     ).strip()
 
                     if update_menu == '1':
                         new_goal_type = input("Please enter your updated goal"
-                                            " type here: ")
+                                              " type here: ")
                         cursor.execute('''UPDATE goals SET goal_type = ? WHERE
                                        goals_id = ?''', (new_goal_type,
                                                          goal_id_found[0],))
@@ -504,6 +517,20 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                                                          goal_id_found[0],))
                         print("UNIT UPDATED SUCCESSFULLY!")
 
+                    elif update_menu == '5':
+                        new_direction = input("If your current value needs to "
+                                              "increase in order to reach your"
+                                              "target value then enter (i), "
+                                              "\nif your current value needs"
+                                              " to decrease in order to reach "
+                                              "your target value enter (d). "
+                                              "\nEnter the updated direction "
+                                              "here: ")
+                        cursor.execute('''UPDATE goals SET direction = ? WHERE
+                                       goals_id = ?''', (new_direction,
+                                                         goal_id_found[0]))
+                        print("DIRECTION UPDATED SUCCESSFULLY")
+
                     elif update_menu == '0':
                         print("UPDATE WAS CANCELED, GOODBYE!")
                         break
@@ -514,6 +541,8 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
 
             db.commit()
 
+    elif menu == '8':
+        print("yah")
     elif menu == '9':
         exit()
 
