@@ -12,6 +12,81 @@ cursor = db.cursor()
 # -----------------------FUNCTIONS---------------------------------------------
 
 
+def get_valid_input(prompt, field_name):
+    while True:
+        user_input = input(prompt)
+        if check_for_null(user_input, field_name):
+            return user_input
+        else:
+            print(f"Invalid {field_name}. Please try again.\n")
+
+
+def enter_goal():
+    print("🎯 Let's set a new fitness goal!\n")
+
+    goal_type = get_valid_input(
+        "Enter the type of goal (e.g., weight loss, 1-rep max, running distance): ",
+        "goal type"
+    )
+
+    target_value = get_valid_input(
+        "Enter the target value for your goal (just the number): ",
+        "target value"
+    )
+
+    unit = get_valid_input(
+        "Enter the unit of measurement (e.g., kg, km, sec): ",
+        "unit"
+    )
+
+    current_value = get_valid_input(
+        "Enter your current progress value (just the number): ",
+        "current value"
+    )
+
+    try:
+        cursor.execute('''
+            INSERT INTO goals (goal_type, target_value, unit, current_value)
+            VALUES (?, ?, ?, ?)
+        ''', (goal_type, float(target_value), unit, float(current_value)))
+        db.commit()
+        print("\n✅ Goal saved successfully into the database!\n")
+
+    except Exception as e:
+        print(f"Failed to save goal: {e}")
+
+    return goal_type, target_value, unit, current_value
+
+
+def check_for_null(entry, specification):
+
+    if entry == '':
+        print(f"Please enter a value for {specification}")
+        return (False)
+    else:
+        return (True)
+
+
+def print_fitness_goals():
+
+    cursor.execute('''SELECT * FROM goals''')
+    goals = cursor.fetchall()
+    print("\n")
+    print("{:<10} {:<20} {:<20} {:<20} {:<10}".format(
+        "ID", "Goal Type", "Target Value", "Current Value", "Unit"))
+    print(80*"-")
+
+    for row in goals:
+
+        goal_id = row[0]
+        goal_type = row[1]
+        target_value = row[2]
+        current_value = row[3]
+        unit = row[4]
+        print("{:<10} {:<20} {:<20} {:<20} {:<10}".format(
+         goal_id, goal_type, target_value, current_value, unit))
+
+
 def check_if_exercise_exists(select_exercise, selected_exercises):
 
     cursor.execute('SELECT exercise_name FROM exercises WHERE exercise_id'
@@ -280,7 +355,7 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                 print(f"Exercise routine '{routine_name}'"
                       " created successfully")
 
-# -----------------------------MENU OPTION 5 ----------------------------------
+# -----------------------------MENU OPTION 5-----------------------------------
 
     elif menu == '5':  # View workout routine
 
@@ -325,11 +400,13 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
         else:
             print('You have not entered a routine name, please try again')
 
-    elif menu == '6':
+# -------------------------------MENU OPTION 6---------------------------------
+    elif menu == '6':  # View / Update exercise progress
 
         print_exercise_progress()
         update_progress_confirmation = input("Would you like to update an"
                                              " exercise goal? (Y / N): ")
+        update_progress_confirmation = update_progress_confirmation.strip()
         if update_progress_confirmation.upper() == 'Y':
 
             progress_to_update = input("Please enter the exercise ID of which"
@@ -365,9 +442,79 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
 
     elif menu == '7':
 
-        print("YAH")
+        set_or_update = input("Would you like to set a new fitness goal (S)"
+                              " or Update an existing fitness goal(U)"
+                              " Please enter your desired option: ")
 
-    elif menu == '0':
+        if set_or_update.upper() == 'S':
+
+            enter_goal()
+
+        elif set_or_update.upper() == 'U':
+
+            print_fitness_goals()
+            goal_id = input("\nPlease enter the ID of the goal"
+                            " you wish to update: ")
+            cursor.execute('''SELECT goals_id FROM goals WHERE goals_id = ?''',
+                           (goal_id,))
+            goal_id_found = cursor.fetchone()
+            if goal_id_found is None:
+                print('PLEASE ENTER A VALID GOAL ID FROM THE TABLE ABOVE')
+
+            else:
+                while True:
+                    update_menu = input(
+                                    "Please select what you would like to update"
+                                    "\n\n1. Goal Type\n"
+                                    "2. Target Value\n"
+                                    "3. Current Value\n"
+                                    "4. Unit\n"
+                                    "0. Exit\n"
+                                    "\nEnter your desired option here: "
+                                    ).strip()
+
+                    if update_menu == '1':
+                        new_goal_type = input("Please enter your updated goal"
+                                            " type here: ")
+                        cursor.execute('''UPDATE goals SET goal_type = ? WHERE
+                                       goals_id = ?''', (new_goal_type,
+                                                         goal_id_found[0],))
+                        print("GOAL TYPE UPDATED SUCCESSFULLY!")
+
+                    elif update_menu == '2':
+                        new_target_value = input("Please enter your new target"
+                                                 " here: ")
+                        cursor.execute('''UPDATE goals SET target_value = ?
+                                       WHERE goals_id = ?''',
+                                       (new_target_value, goal_id_found[0],))
+                        print("TARGET VALUE UPDATED SUCCESSFULLY!")
+
+                    elif update_menu == '3':
+                        new_current_value = input("Please enter your new "
+                                                  "current value here: ")
+                        cursor.execute('''UPDATE goal SET current_value = ?
+                                       WHERE goals_id = ?''',
+                                       (new_current_value, goal_id_found[0],))
+                        print("CURRENT VALUE UPDATED SUCCESSFULLY!")
+
+                    elif update_menu == '4':
+                        new_unit = input("Please enter your new unit here: ")
+                        cursor.execute('''UPDATE goals SET unit = ? WHERE
+                                       goals_id = ?''', (new_unit,
+                                                         goal_id_found[0],))
+                        print("UNIT UPDATED SUCCESSFULLY!")
+
+                    elif update_menu == '0':
+                        print("UPDATE WAS CANCELED, GOODBYE!")
+                        break
+
+                    else:
+                        print("Invalid entry, please enter the number"
+                              " corresponding to the options provided")
+
+            db.commit()
+
+    elif menu == '9':
         exit()
 
     else:
