@@ -25,9 +25,9 @@ def enter_goal():
     print("🎯 Let's set a new fitness goal!\n")
 
     goal_type = get_valid_input(
-        "Enter the type of goal (e.g., weight loss, 1-rep max, running distance): ",
-        "goal type"
-    )
+        "Enter the type of goal (e.g., lose 10kg, 1-rep max,"
+        "running distance): ",
+        "goal type")
 
     target_value = get_valid_input(
         "Enter the target value for your goal (just the number): ",
@@ -40,24 +40,26 @@ def enter_goal():
     current_value = get_valid_input(
         "Enter your current progress value (just the number): ",
         "current value")
-    
+
     while True:
 
         direction = input("Should your current value increase or decrease to "
                           "reach your goal? (i = increase, d = decrease): "
                           ).strip().lower()
-        
+
         if direction in ['i', 'd']:
             break
         else:
-            print("Invalid input. Type 'i' for increase or 'd' for decrease.\n")
+            print("Invalid input. Type 'i' for increase or 'd' for decrease."
+                  "\n")
 
     # ✅ Insert into the database
     try:
         cursor.execute('''
-            INSERT INTO goals (goal_type, target_value, unit, current_value, direction)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (goal_type, float(target_value), unit, float(current_value), direction))
+            INSERT INTO goals (goal_type, target_value, unit, current_value,
+                       direction)VALUES (?, ?, ?, ?, ?)''',
+                       (goal_type, float(target_value), unit,
+                        float(current_value), direction))
         db.commit()
         print("\n✅ Goal saved successfully into the database!\n")
 
@@ -229,7 +231,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS workout_routine_exercises
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS goals (goals_id INTEGER PRIMARY
     KEY, goal_type TEXT, target_value REAL, current_value REAL, unit TEXT,
-                inc_dec TEXT)''')
+                direction TEXT)''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_progress
                (progress_id INTEGER PRIMARY KEY, exercise_id INTEGER,
@@ -301,7 +303,7 @@ Please enter your exercise category to view exercises from (0 to cancel): ''')
         delete_exercise_category = input('\nPlease enter the category of which'
                                          ' the exercise you would like to '
                                          'remove(0 to cancel): ')
-        while delete_exercise_category != 0:
+        while delete_exercise_category != '0':
 
             display_exercises_by_category(delete_exercise_category)
             delete_exercise = input('Please enter the exercise name from above'
@@ -310,12 +312,12 @@ Please enter your exercise category to view exercises from (0 to cancel): ''')
             cursor.execute('''SELECT exercise_name from exercises WHERE
                 UPPER(exercise_name) = (?)''', (delete_exercise.upper(), ))
             found_exercise = cursor.fetchone()
-            found_exercise = found_exercise[0]
 
             if found_exercise is None:
                 print('Exercise does not exist, pick from the list above!')
 
             else:
+                found_exercise = found_exercise[0]
                 confirmation = input(f'''
 Are you sure you want to delete{found_exercise} (Y/N)? ''')
                 if confirmation.upper() == 'Y':
@@ -346,7 +348,7 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                                     '(A to confirm and submit all selected'
                                     ' exercises): ')
 
-        if select_exercise.upper() == 'A':
+        if select_exercise.strip().upper() == 'A':
             if selected_exercises == []:
                 print('ZERO EXERCISES SELECTED'
                       ', NONE ADDED, ROUTINE CREATION CANCELED')
@@ -452,7 +454,9 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
         else:
             print("You have entered an incorrect value, Please specify Y or N")
 
-    elif menu == '7':
+#  ---------------------------MENU OPTION 7------------------------------------
+
+    elif menu == '7':  # Set Fitness Goals
 
         set_or_update = input("Would you like to set a new fitness goal (S)"
                               " or Update an existing fitness goal(U)"
@@ -476,15 +480,15 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
             else:
                 while True:
                     update_menu = input(
-                                    "Please select what you would like to update"
-                                    "\n\n1. Goal Type\n"
-                                    "2. Target Value\n"
-                                    "3. Current Value\n"
-                                    "4. Unit\n"
-                                    "5. Direction to reach goal\n"
-                                    "0. Exit\n"
-                                    "\nEnter your desired option here: "
-                                    ).strip()
+                                "Please select what you would like to update"
+                                "\n\n1. Goal Type\n"
+                                "2. Target Value\n"
+                                "3. Current Value\n"
+                                "4. Unit\n"
+                                "5. Direction to reach goal\n"
+                                "0. Exit\n"
+                                "\nEnter your desired option here: "
+                                ).strip()
 
                     if update_menu == '1':
                         new_goal_type = input("Please enter your updated goal"
@@ -505,7 +509,7 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                     elif update_menu == '3':
                         new_current_value = input("Please enter your new "
                                                   "current value here: ")
-                        cursor.execute('''UPDATE goal SET current_value = ?
+                        cursor.execute('''UPDATE goals SET current_value = ?
                                        WHERE goals_id = ?''',
                                        (new_current_value, goal_id_found[0],))
                         print("CURRENT VALUE UPDATED SUCCESSFULLY!")
@@ -541,8 +545,40 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
 
             db.commit()
 
-    elif menu == '8':
-        print("yah")
+#  ------------------------------MENU OPTION 8---------------------------------
+
+    elif menu == '8':  # View progress towards fitness goals
+
+        cursor.execute('''SELECT goal_type, current_value, target_value, unit,
+                       direction FROM goals''')
+        goals = cursor.fetchall()
+        print("\n")
+        print("{:<30} {:<30} {:<30}".format("Goal", "Percentage Progress",
+                                            "Remaining"))
+        print("-"*110)
+
+        for row in goals:
+            goal_type = row[0]
+            current_value = row[1]
+            target_value = row[2]
+            unit = row[3]
+            direction = row[4]
+
+            if direction == 'i':
+                progress_percentage = (current_value / target_value) * 100
+                value_remaining = target_value - current_value
+                value_remaining = f"{value_remaining} {unit}"
+
+            elif direction == 'd':
+                progress_percentage = (target_value / current_value) * 100
+                value_remaining = current_value - target_value
+                value_remaining = f"{value_remaining} {unit}"
+
+            print("{:<30} {:<30} {:<30}".format(goal_type,
+                                                round(progress_percentage, 2),
+                                                value_remaining))
+        print("\n")
+
     elif menu == '9':
         exit()
 
