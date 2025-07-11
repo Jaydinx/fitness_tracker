@@ -39,6 +39,8 @@ def enter_goal():
 
     while True:
 
+        '''Prompt the user to specify whether their progress should increase
+           or decrease'''
         direction = input("Should your current value increase or decrease to "
                           "reach your goal? (i = increase, d = decrease): "
                           ).strip().lower()
@@ -50,6 +52,7 @@ def enter_goal():
                   "\n")
 
     try:
+        # Insert the new goal into the 'goals' table with user-provided values
         cursor.execute('''
             INSERT INTO goals (goal_type, target_value, unit, current_value,
                        direction)VALUES (?, ?, ?, ?, ?)''',
@@ -128,14 +131,18 @@ def print_fitness_goals():
 
 def check_if_exercise_exists(select_exercise, selected_exercises):
 
+    # Check if the provided exercise ID exists in the database
     cursor.execute('SELECT exercise_name FROM exercises WHERE exercise_id'
                    '= (?)', (select_exercise, ))
     exercise_name = cursor.fetchone()
+
     if exercise_name is None:
         print('EXERCISE ID IS OUT OF RANGE, PLEASE SELECT FROM OPTIONS ABOVE')
         return (False)
     else:
 
+        '''Check if the user has already selected this exercise to avoid
+            duplicates'''
         if select_exercise in selected_exercises:
 
             print('You have already included this exercise in your'
@@ -246,6 +253,59 @@ def print_exercise_progress():
 
             print("{:<10} {:<25} {:<20}".format(*exercise, *weight))
 
+
+'''The function add_new_exercise lets the user add a new exercise to the
+    exercises table.
+    User must provide the exercise name, muscle group, reps, sets,
+    and select an existing category to link the exercise to.
+    Checks for valid input and stores the new exercise in the database.'''
+
+
+def add_new_exercise():
+
+    print("\n🆕 ADD NEW EXERCISE")
+    # Prompt user for exercise name, muscle group, reps, sets
+    # Wrap in try-except to ensure numeric inputs for reps and sets
+    exercise_name = get_valid_input("Enter exercise name: ", "exercise name")
+    muscle_group = get_valid_input("Enter muscle group (e.g., Chest, Legs): ",
+                                   "muscle group")
+
+    while True:
+        try:
+            reps = int(input("Enter number of reps (as a number): "))
+            sets = int(input("Enter number of sets (as a number): "))
+            break
+        except ValueError:
+            print("Reps and sets must be valid numbers. Please try again.\n")
+
+    # Show categories to select from
+    print("\nAvailable Categories:")
+    display_categories()
+
+    # Ask the user to select a category that already exists
+    # Convert category name to uppercase for case-insensitive matching
+    category_name = get_valid_input("Enter the category name this exercise "
+                                    "belongs to: ", "category name")
+    cursor.execute('''SELECT category_id FROM categories WHERE
+                   UPPER(category_name) = ?''', (category_name.upper(),))
+    category_id = cursor.fetchone()
+
+    if category_id:
+        try:
+            cursor.execute('''INSERT INTO exercises (exercise_name,
+                           muscle_group,reps, sets, category_id)
+                           VALUES (?, ?, ?, ?, ?)''',
+                           (exercise_name, muscle_group, reps, sets,
+                            category_id[0]))
+            db.commit()
+            print(f"\nExercise '{exercise_name}' added successfully!\n")
+
+        except Exception as e:
+            print(f"Failed to add exercise: {e}")
+    else:
+        print("Category not found! Please make sure it exists.")
+
+
 # -----------------------CREATE TABLES ----------------------------------------
 
 
@@ -300,36 +360,40 @@ Please enter your desired option here : ''')
 
     if menu == '1':  # Add exercise category
 
-        while True:
-            # Check if category exists
-            exercise_category = input("Please enter your exercise category to"
-                                      " add (0 to cancel): ")
+        add_choice = input("Would you like to:\n\n"
+                           "1. Add a new exercise category\n"
+                           "2. Add a new exercise\n\n"
+                           "Enter your choice (1 or 2, 0 to cancel): ").strip()
 
-            if exercise_category == '0':
-                break
+        if add_choice == '1':
 
-            else:
+            exercise_category = input('Enter your exercise category to add '
+                                      '(0 to cancel): ')
+            while exercise_category != '0':
                 cursor.execute('''SELECT category_name FROM categories WHERE
-                            category_name = (?)''', (exercise_category,))
+                               category_name = (?)''', (exercise_category,))
 
                 if cursor.fetchone() is None:
                     cursor.execute('''INSERT INTO categories(category_name)
-                                    VALUES(?)''', (exercise_category, ))
+                                    VALUES(?)''', (exercise_category,))
                     print("Exercise category added successfully!")
 
                 else:
-                    print('\nCATEGORY ALREADY EXISTS! \n')
-                    break
-
+                    print('CATEGORY ALREADY EXISTS!')
                 db.commit()
+                exercise_category = input('Enter another category '
+                                          '(0 to cancel): ')
+
+        elif add_choice == '2':
+            add_new_exercise()
 
 # ------------------------MENU OPTION 2----------------------------------------
 
     elif menu == '2':  # View exercise by category
 
         display_categories()
-        view_exercise_category = input("Please enter the category name"
-                                       "of which the exercises you wish to"
+        view_exercise_category = input("\nPlease enter the category name"
+                                       " of which the exercises you wish to"
                                        " view are from (0 to cancel): ")
 
         while view_exercise_category != '0':
@@ -398,14 +462,20 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                       ', NONE ADDED, ROUTINE CREATION CANCELED')
 
             else:
+                '''Insert new workout routine into the database and fetch the
+                    auto-generated ID'''
+
                 cursor.execute('''INSERT INTO workout_routines
                             (routine_name) VALUES (?)''', (routine_name, ))
                 cursor.execute('''SELECT workout_routine_id FROM
                                workout_routines WHERE routine_name = (?)''',
                                (routine_name, ))
-
                 routine_id = cursor.fetchone()
+
                 for exercise_id in selected_exercises:
+                    '''Insert selected exercises into the
+                        workout_routine_exercises junction table'''
+
                     cursor.execute('''INSERT INTO workout_routine_exercises
                                    (routine_id, exercise_id) VALUES (?, ?)''',
                                    (routine_id[0], exercise_id))
@@ -464,21 +534,25 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
 
         print_exercise_progress()
         update_progress_confirmation = input("Would you like to update an"
-                                             " exercise goal? (Y / N): ")
+                                             " exercise progress? (Y / N): ")
         update_progress_confirmation = update_progress_confirmation.strip()
-        if update_progress_confirmation.upper() == 'Y':
 
+        if update_progress_confirmation.upper() == 'Y':
             progress_to_update = input("Please enter the exercise ID of which"
                                        " exercise you wish to update: ")
+
+            # Fetch the exercise to confirm it exists before allowing update
             cursor.execute('''SELECT exercise_id FROM exercise_progress WHERE
                            exercise_id = (?)''', (progress_to_update,))
             exercise_id = cursor.fetchone()
             exercise_id = int(exercise_id[0])
+
             if exercise_id is None:
                 print('''Exercise not found, please ensure you have entered
                       the correct id''')
 
             else:
+                # Update the progress for the selected exercise in the database
                 cursor.execute('''SELECT exercise_name FROM exercises WHERE
                                exercise_id = (?)''', (exercise_id,))
                 exercise_name = cursor.fetchone()
@@ -508,10 +582,11 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                               " Please enter your desired option: ")
 
         if set_or_update.upper() == 'S':
-
             enter_goal()
 
         elif set_or_update.upper() == 'U':
+            # Display goals and let user choose which attribute to update
+            # Use UPDATE SQL statements for each option
 
             print_fitness_goals()
             goal_id = input("\nPlease enter the ID of the goal"
@@ -519,6 +594,7 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
             cursor.execute('''SELECT goals_id FROM goals WHERE goals_id = ?''',
                            (goal_id,))
             goal_id_found = cursor.fetchone()
+
             if goal_id_found is None:
                 print('PLEASE ENTER A VALID GOAL ID FROM THE TABLE ABOVE')
 
@@ -624,7 +700,9 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                                                 value_remaining))
         print("\n")
 
-    elif menu == '9':
+# --------------------------MENU OPTION 9--------------------------------------
+
+    elif menu == '9':  # Quit
         print("Goodbye !")
         db.close()
         exit()
