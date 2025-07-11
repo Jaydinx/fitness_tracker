@@ -1,24 +1,20 @@
 import sqlite3
 
-db = sqlite3.connect('data/fitness_tracker_db')
-cursor = db.cursor()
-
 '''This fitness tracker app allows the user to perform multiple operations such
    as adding workout categories, updating workout categories, removing workout
    categories, creating workout goals, goal categories, removing the goal
    category as well as calculating the user's fitness goal progress based on
    the information they have provided'''
 
+# ---------------------DATABASE CONNECTION-------------------------------------
+db = sqlite3.connect('data/fitness_tracker_db')
+cursor = db.cursor()
+
 # -----------------------FUNCTIONS---------------------------------------------
-
-
-def get_valid_input(prompt, field_name):
-    while True:
-        user_input = input(prompt)
-        if check_for_null(user_input, field_name):
-            return user_input
-        else:
-            print(f"Invalid {field_name}. Please try again.\n")
+'''The function enter_goal, asks the user for input to set a new fitness goal.
+    Captures goal type, target value, unit, current value, and whether it
+    needs to increase or decrease.
+    Inserts all this information into the goals table in the database.'''
 
 
 def enter_goal():
@@ -53,7 +49,6 @@ def enter_goal():
             print("Invalid input. Type 'i' for increase or 'd' for decrease."
                   "\n")
 
-    # ✅ Insert into the database
     try:
         cursor.execute('''
             INSERT INTO goals (goal_type, target_value, unit, current_value,
@@ -64,9 +59,14 @@ def enter_goal():
         print("\n✅ Goal saved successfully into the database!\n")
 
     except Exception as e:
-        print(f"❌ Failed to save goal: {e}")
+        print(f"Failed to save goal: {e}")
 
     return goal_type, target_value, unit, current_value, direction
+
+
+'''The function check_for_null checks if the user input is empty.
+    Prints a message and returns False if nothing is entered.
+    Used for input validation.'''
 
 
 def check_for_null(entry, specification):
@@ -76,6 +76,26 @@ def check_for_null(entry, specification):
         return (False)
     else:
         return (True)
+
+
+'''The function get_valid_input keeps asking the user for input until a
+    non-empty value is provided.
+    Uses check_for_null to validate.
+    Returns the valid user input.'''
+
+
+def get_valid_input(prompt, field_name):
+    while True:
+        user_input = input(prompt)
+        if check_for_null(user_input, field_name):
+            return user_input
+        else:
+            print(f"Invalid {field_name}. Please try again.\n")
+
+
+'''The function print_fitness_goals fetches all fitness goals from the database
+    and prints them in a neat format.
+    Shows ID, goal type, target/current values, unit, and direction.'''
 
 
 def print_fitness_goals():
@@ -100,6 +120,12 @@ def print_fitness_goals():
          goal_id, goal_type, target_value, current_value, unit, direction))
 
 
+'''The function check_if_exercises_exists checks if an exercise ID exists in
+    the database.
+    Also checks if the user already added that exercise to their list.
+    Prevents duplicates and invalid selections.'''
+
+
 def check_if_exercise_exists(select_exercise, selected_exercises):
 
     cursor.execute('SELECT exercise_name FROM exercises WHERE exercise_id'
@@ -118,6 +144,11 @@ def check_if_exercise_exists(select_exercise, selected_exercises):
             return (False)
         else:
             return (True)
+
+
+'''The function display_all_exercises displays all exercises from the exercises
+    table in a formatted list.
+    Shows ID, name, muscle group, reps, and sets.'''
 
 
 def display_all_exercises():
@@ -140,28 +171,30 @@ def display_all_exercises():
               (exercise_id, exercise_name, muscle_group, reps, sets))
 
 
+''' The function display_categories fetches and displays all exercise
+    categories from the database.
+    Filters out duplicates by default using SQL.'''
+
+
 def display_categories():
 
-    cursor.execute('''SELECT * from categories''')
+    cursor.execute('''SELECT category_name FROM categories''')
     categories = cursor.fetchall()
-    db.commit()
-
-    print('{:<25}'.format('CATEGORY LIST'))
-    print('-'*65)
-
+    print('EXERCISE CATEGORIES')
+    print("-" * 25)
     for row in categories:
-        category_name = row[1]
-        print('{:<25}'.format(category_name))
+        print(row[0])
 
 
-'''The function "display_exercises_by_category" ensures that the selected data
-    is displayed in a neat and legible format'''
+''' The function display_exercises_by_category displays exercises that belong
+    to a specific category (by name).
+    If the category doesn't exist, shows an error message.'''
 
 
 def display_exercises_by_category(entry):
 
     cursor.execute('''SELECT category_id from categories where
-                category_name = (?) ''', (entry, ))
+                UPPER(category_name) = (?) ''', (entry.upper(), ))
 
     category_id = cursor.fetchone()
 
@@ -188,6 +221,11 @@ def display_exercises_by_category(entry):
                   (exercise_id, exercise_name, muscle_group, reps, sets))
 
 
+'''The function print_exercise_progress displays the user's weight progress for
+    each exercise.
+    Pulls exercise names and corresponding weights from the database.'''
+
+
 def print_exercise_progress():
 
     print("{:<10} {:<25} {:<20}".format("ID", "Exercise", "Weight"))
@@ -208,10 +246,9 @@ def print_exercise_progress():
 
             print("{:<10} {:<25} {:<20}".format(*exercise, *weight))
 
-# *****************************************************************************
+# -----------------------CREATE TABLES ----------------------------------------
 
 
-# Create tables
 cursor.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER
                PRIMARY KEY, Category_Name Text)''')
 
@@ -242,7 +279,7 @@ db.commit()
 # *****************************************************************************
 
 while True:
-
+    # Display menu
     menu = input('''Please select an option from the menu below by inputting
 the number corresponding to your desired option to proceed
 
@@ -263,36 +300,41 @@ Please enter your desired option here : ''')
 
     if menu == '1':  # Add exercise category
 
-        exercise_category = input('''
-Please enter your exercise category to add (0 to cancel): ''')
-
-        while exercise_category != '0':
+        while True:
             # Check if category exists
-            cursor.execute('''SELECT category_name FROM categories WHERE
-                           category_name = (?)''', (exercise_category,))
+            exercise_category = input("Please enter your exercise category to"
+                                      " add (0 to cancel): ")
 
-            if cursor.fetchone() is None:
-                cursor.execute('''INSERT INTO categories(category_name)
-                                VALUES(?)''', (exercise_category, ))
-                print("Exercise category added successfully!")
+            if exercise_category == '0':
+                break
 
             else:
-                print('CATEGORY ALREADY EXISTS!')
+                cursor.execute('''SELECT category_name FROM categories WHERE
+                            category_name = (?)''', (exercise_category,))
 
-            db.commit()
-            exercise_category = input('''
-Please enter your desired exercise category (0 to cancel): ''')
+                if cursor.fetchone() is None:
+                    cursor.execute('''INSERT INTO categories(category_name)
+                                    VALUES(?)''', (exercise_category, ))
+                    print("Exercise category added successfully!")
+
+                else:
+                    print('\nCATEGORY ALREADY EXISTS! \n')
+                    break
+
+                db.commit()
 
 # ------------------------MENU OPTION 2----------------------------------------
 
     elif menu == '2':  # View exercise by category
 
-        view_exercise_category = input('''
-Please enter your exercise category to view exercises from (0 to cancel): ''')
+        display_categories()
+        view_exercise_category = input("Please enter the category name"
+                                       "of which the exercises you wish to"
+                                       " view are from (0 to cancel): ")
 
         while view_exercise_category != '0':
-
             display_exercises_by_category(view_exercise_category)
+            print("\n")
             break
 
 # -------------------------MENU OPTION 3---------------------------------------
@@ -327,7 +369,9 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
                 else:
                     print('CANCELED!')
                     break
+
 # ------------------------MENU OPTION 4----------------------------------------
+
     elif menu == '4':  # Create workout routine
 
         routine_name = input('Please enter the name of your new workout'
@@ -415,6 +459,7 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
             print('You have not entered a routine name, please try again')
 
 # -------------------------------MENU OPTION 6---------------------------------
+
     elif menu == '6':  # View / Update exercise progress
 
         print_exercise_progress()
@@ -580,6 +625,8 @@ Are you sure you want to delete{found_exercise} (Y/N)? ''')
         print("\n")
 
     elif menu == '9':
+        print("Goodbye !")
+        db.close()
         exit()
 
     else:
